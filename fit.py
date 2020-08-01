@@ -4,7 +4,7 @@ import sys, getopt
 import yaml
 import copy
 
-def do1DFit(rootFile, obs, aBin, flag, theWorkSpace):
+def do1DFit(rootFile, obs, aBin, flag, theWorkSpace, outputDir):
 
 	theWorkSpace.factory("expr::nSignalPass('efficiency*fSigAll*numTot', efficiency, fSigAll[0.9,0,1],numTot[1,0,1e10])") 
 	theWorkSpace.factory("expr::nSignalFail('(1-efficiency)*fSigAll*numTot', efficiency, fSigAll,numTot)") 
@@ -94,11 +94,11 @@ def do1DFit(rootFile, obs, aBin, flag, theWorkSpace):
 	c0.cd(3) 
 	xframe3.Draw() 
 
-	c0.Print(nameofHisto+".png") 
+	c0.Print(outputDir+"/"+nameofHisto+".png") 
 
 	return (theEfficiency,theEffError)
 
-def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWorkSpace):
+def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWorkSpace, outputDir):
 
 	theWorkSpace.factory("expr::nSignalPass('efficiency*fSigAll*numTot', efficiency, fSigAll[0.9,0,1],numTot[1,0,1e10])") 
 	theWorkSpace.factory("expr::nSignalFail('(1-efficiency)*fSigAll*numTot', efficiency, fSigAll,numTot)") 
@@ -198,19 +198,26 @@ def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWork
 	c0.cd(3) 
 	xframe3.Draw() 
 
-	c0.Print(nameofHisto+".png") 
+	c0.Print(outputDir+"/"+nameofHisto+".png") 
 
 	return (theEfficiency,theEffError)
 def main(argv):
 	inputfile = ''
-	outputfile = 'eff.root'
+	outputdir = ''
 	yamlfile = '../config.yaml'
 	samplename = 'mc'
 	fitmodel = 'vpvPlusExpo' #default
 	try:
-		opts, args = getopt.getopt(argv,"hi:o:y:s:f:",["inputFile=","outputFile=","yamlFile=", "sampleName=","fitModel="])
+		opts, args = getopt.getopt(argv,"hi:o:y:s:f:",["inputFile=","outputDir=","yamlFile=", "sampleName=","fitModel="])
 	except getopt.GetoptError:
-		print('test.py -i <inputfile>')
+		err_line  = ""
+		err_line += "test.py -h\n"
+		err_line += "-i input\n"
+		err_line += "-o output\n"
+		err_line += "-y configFile\n"
+		err_line += "-f fitModel\n"
+		err_line += "-s sampleName\n"
+		print(err_line)
 		sys.exit(2)
 	for opt, arg in opts:
 		if opt == '-h':
@@ -218,8 +225,8 @@ def main(argv):
 			sys.exit()
 		elif opt in ("-i", "--inputFile"):
 			inputfile = arg	
-		elif opt in ("-o", "--outputFile"):
-			outputfile = arg
+		elif opt in ("-o", "--outputDir"):
+			outputdir = arg
 		elif opt in ("-y", "--yamlFile"):
 			yamlfile = arg
 		elif opt in ("-s", "--sampleName"):
@@ -242,14 +249,14 @@ def main(argv):
 		histoNames.append(f1.GetListOfKeys().At(i).GetName())
 	
 	### create root file to save efficiencies
-	f3 = ROOT.TFile(outputfile,"update")
-	samplename = samplename +"_" +fitmodel
+	f3 = ROOT.TFile(outputdir+"/efficiencies.root","update")
+
 	### 1D fit ###
 	for flag in config['flags']:
 		for obs in config['observable']:
 			h1 = ROOT.TH1F(samplename+'_'+obs+'_'+flag, obs+' '+flag,len(config["binning"][obs])-1, array.array("d",config["binning"][obs]))
 			for aBin in range (1,len(config["binning"][obs])):		
-				effs = do1DFit(f1, obs , aBin, flag, theWorkSpace)
+				effs = do1DFit(f1, obs , aBin, flag, theWorkSpace, outputdir)
 				h1.SetBinContent(aBin, effs[0])
 				h1.SetBinError(aBin, effs[1])
 			h1.Write()
@@ -260,7 +267,7 @@ def main(argv):
 			h2 = ROOT.TH2F(samplename+'_'+obs+config['observable2D'][obs]+'_'+flag, obs+' '+config['observable2D'][obs]+' '+flag, len(config["binning"][obs])-1, array.array("d",config["binning"][obs]), len(config["binning"][config['observable2D'][obs]])-1, array.array("d",config["binning"][config['observable2D'][obs]]))
 			for secondBin in range (1,len(config["binning"][config['observable2D'][obs]])):
 				for firstBin in range (1,len(config["binning"][obs])):
-					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace)
+					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h2.SetBinContent(firstBin, secondBin, effs[0] )
 					h2.SetBinError(firstBin, secondBin, effs[1] )
 			h2.Write()
@@ -271,7 +278,7 @@ def main(argv):
 			for firstBin in range (1,len(config["binning"][obs])):
 				h3 = ROOT.TH1F(samplename+'_'+config['observable2D'][obs]+'_'+obs+str(firstBin)+'_'+flag, obs+'%.1f'%config["binning"][obs][firstBin-1]+'-'+'%.1f'%config["binning"][obs][firstBin]+' '+config['observable2D'][obs]+' '+flag, len(config["binning"][config['observable2D'][obs]])-1, array.array("d",config["binning"][config['observable2D'][obs]]))
 				for secondBin in range (1,len(config["binning"][config['observable2D'][obs]])):
-					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace)
+					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h3.SetBinContent(secondBin, effs[0] )
 					h3.SetBinError(secondBin, effs[1] )
 				h3.Write()
