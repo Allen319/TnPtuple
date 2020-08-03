@@ -9,7 +9,7 @@ def prepare_job_script():
     if not os.path.exists(plotDirectory):
       os.makedirs(plotDirectory)
     os.system("cp "+baseDir+"/env.sh " + jobsDirectory)
-    os.system("cp "+baseDir+"/fit.py " + jobsDirectory)
+    #os.system("cp "+baseDir+"/fit.py " + jobsDirectory)
     if not "data" in samples:
       samples.append("data")
     for fileName in samples:
@@ -18,11 +18,11 @@ def prepare_job_script():
           os.makedirs(plotDirectory+"/"+aModel)
         scriptFile = open(jobsDirectory+'/jobs/'+'fithis_'+year+fileName+aModel+'.sh','w')
         scriptLines = ''
-        scriptLines += ('export INITDIR='+jobsDirectory+'\n')
+        scriptLines += ('export INITDIR='+baseDir+'\n')
         scriptLines += ('cd $INITDIR\n')
         scriptLines += '. ./env.sh ;\n'
         scriptLines += ("date;\n")
-        scriptLines += ("./fit.py -i "+jobsDirectory+"/"+year+"/histograms/"+fileName+".root"+" -y "+baseDir+"/config/"+aFile+" -o "+plotDirectory+"/"+aModel+"/"+" -s "+fileName +" -f "+aModel+";\n")
+        scriptLines += (baseDir+"/python/fit.py -i "+jobsDirectory+"/"+year+"/histograms/"+fileName+".root"+" -y "+baseDir+"/config/"+aFile+" -o "+plotDirectory+"/"+aModel+"/"+" -s "+fileName +" -f "+aModel+";\n")
 			#scriptLines += ("./fit.py -i "+subDirectory+fileName+".root" +" -s "+fileName+" -y "+baseDir+"/config/"+aFile+" -f "+aModel+" -o "+subDirectory+fileName+"_eff.root;\n")
         scriptFile.write(scriptLines)
         scriptFile.close()
