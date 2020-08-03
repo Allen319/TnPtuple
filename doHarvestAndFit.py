@@ -16,7 +16,9 @@ def prepare_job_script():
       for aModel in pdfs:
         if not os.path.exists(plotDirectory+"/"+aModel):
           os.makedirs(plotDirectory+"/"+aModel)
-        scriptFile = open(jobsDirectory+'/jobs/'+'fithis_'+year+fileName+aModel+'.sh','w')
+				if not os.path.exists(plotDirectory+"/"+aModel+"/index.php"):
+					os.system("cp "+baseDir+"/index.php "+ plotDirectory+"/"+aModel+"/index.php")
+				scriptFile = open(jobsDirectory+'/jobs/'+'fithis_'+year+fileName+aModel+'.sh','w')
         scriptLines = ''
         scriptLines += ('export INITDIR='+baseDir+'\n')
         scriptLines += ('cd $INITDIR\n')
