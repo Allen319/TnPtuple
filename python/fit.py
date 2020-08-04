@@ -253,7 +253,7 @@ def main(argv):
 		histoNames.append(f1.GetListOfKeys().At(i).GetName())
 	f1.Close()	
 	### create root file to save emeofHistofficiencies
-	f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
+	#f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
 
 	### 1D fit ###
 	for flag in config['flags']:
@@ -263,7 +263,9 @@ def main(argv):
 				effs = do1DFit(inputfile , obs , aBin, flag, theWorkSpace, outputdir)
 				h1.SetBinContent(aBin, effs[0])
 				h1.SetBinError(aBin, effs[1])
+			f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
 			h1.Write()
+			f3.Close()
 	
 	### 2D fit ###
 	for flag in config['flags']:
@@ -274,7 +276,9 @@ def main(argv):
 					effs = do2DFit (inputfile ,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h2.SetBinContent(firstBin, secondBin, effs[0] )
 					h2.SetBinError(firstBin, secondBin, effs[1] )
+			f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
 			h2.Write()
+			f3.Close()
 
 	### 2D fit with 1D binning ###
 	for flag in config['flags']:
@@ -285,8 +289,9 @@ def main(argv):
 					effs = do2DFit (inputfile,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h3.SetBinContent(secondBin, effs[0] )
 					h3.SetBinError(secondBin, effs[1] )
+				f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
 				h3.Write()
-	f3.Close()
+				f3.Close()
 
 if __name__ == '__main__':
 	main(sys.argv[1:])
