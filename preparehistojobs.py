@@ -54,4 +54,4 @@ if __name__ == '__main__':
     print(samples)
     pdfs = config['pdfs']
     main()  
-  os.system("big-submission "+jobsDirectory+"/jobs/sendJobs.cmd")	
+    os.system("big-submission "+jobsDirectory+"/jobs/sendJobs.cmd")	

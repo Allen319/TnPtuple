@@ -7,7 +7,7 @@ import sys, getopt
 import yaml
 import copy
 
-def do1DFit(rootFile, obs, aBin, flag, theWorkSpace, outputDir):
+def do1DFit(rootFileName, obs, aBin, flag, theWorkSpace, outputDir):
 
 	theWorkSpace.factory("expr::nSignalPass('efficiency*fSigAll*numTot', efficiency, fSigAll[0.9,0,1],numTot[1,0,1e10])") 
 	theWorkSpace.factory("expr::nSignalFail('(1-efficiency)*fSigAll*numTot', efficiency, fSigAll,numTot)") 
@@ -29,6 +29,7 @@ def do1DFit(rootFile, obs, aBin, flag, theWorkSpace, outputDir):
 	simPdf.addPdf(theWorkSpace.pdf("passing"),"passing")  
 	simPdf.addPdf( theWorkSpace.pdf("failling"),"failling")  
 
+	rootFile = ROOT.TFile(rootFileName)
 	nameofHisto = obs+"_"+str(aBin)+"_"+flag 
 	histoPass = rootFile.Get(nameofHisto+"1") 
 	histoFail = rootFile.Get(nameofHisto+"0") 
@@ -97,11 +98,11 @@ def do1DFit(rootFile, obs, aBin, flag, theWorkSpace, outputDir):
 	c0.cd(3) 
 	xframe3.Draw() 
 
-	c0.Print(outputDir+"/"+nameofHisto+".png") 
-
+	c0.Print(outputDir+"/"+rootFileName.split("/")[-1][:-5]+"_"+nameofHisto+".png") 
+	rootFile.Close()
 	return (theEfficiency,theEffError)
 
-def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWorkSpace, outputDir):
+def do2DFit(rootFileName, histoNames, obs1, obs2, firstBin, secondBin, flag, theWorkSpace, outputDir):
 
 	theWorkSpace.factory("expr::nSignalPass('efficiency*fSigAll*numTot', efficiency, fSigAll[0.9,0,1],numTot[1,0,1e10])") 
 	theWorkSpace.factory("expr::nSignalFail('(1-efficiency)*fSigAll*numTot', efficiency, fSigAll,numTot)") 
@@ -122,7 +123,7 @@ def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWork
 	simPdf= ROOT.RooSimultaneous("simPdf","simultaneous pdf",TnPcat)  
 	simPdf.addPdf(theWorkSpace.pdf("passing"),"passing")  
 	simPdf.addPdf( theWorkSpace.pdf("failling"),"failling")  
-
+	rootFile = ROOT.TFile(rootFileName)
 	nameofHisto = obs1+obs2+"_"+str(firstBin)+"-"+str(secondBin)+"_"+flag 
 	print(nameofHisto+"0")
 	if nameofHisto+"0" in histoNames:
@@ -201,8 +202,8 @@ def do2DFit(rootFile, histoNames, obs1, obs2, firstBin, secondBin, flag, theWork
 	c0.cd(3) 
 	xframe3.Draw() 
 
-	c0.Print(outputDir+"/"+nameofHisto+".png") 
-
+	c0.Print(outputDir+"/"+rootFileName.split("/")[-1][:-5]+"_"+nameofHisto+".png") 
+	rootFile.Close()
 	return (theEfficiency,theEffError)
 def main(argv):
 	inputfile = ''
@@ -250,16 +251,16 @@ def main(argv):
 	histoNames = []
 	for i in range(0,f1.GetListOfKeys().Capacity()):
 		histoNames.append(f1.GetListOfKeys().At(i).GetName())
-	
-	### create root file to save efficiencies
-	f3 = ROOT.TFile(outputdir+"/efficiencies.root","update")
+	f1.Close()	
+	### create root file to save emeofHistofficiencies
+	f3 = ROOT.TFile(outputdir+"/eff_"+samplename+".root","update")
 
 	### 1D fit ###
 	for flag in config['flags']:
 		for obs in config['observable']:
 			h1 = ROOT.TH1F(samplename+'_'+obs+'_'+flag, obs+' '+flag,len(config["binning"][obs])-1, array.array("d",config["binning"][obs]))
 			for aBin in range (1,len(config["binning"][obs])):		
-				effs = do1DFit(f1, obs , aBin, flag, theWorkSpace, outputdir)
+				effs = do1DFit(inputfile , obs , aBin, flag, theWorkSpace, outputdir)
 				h1.SetBinContent(aBin, effs[0])
 				h1.SetBinError(aBin, effs[1])
 			h1.Write()
@@ -270,7 +271,7 @@ def main(argv):
 			h2 = ROOT.TH2F(samplename+'_'+obs+config['observable2D'][obs]+'_'+flag, obs+' '+config['observable2D'][obs]+' '+flag, len(config["binning"][obs])-1, array.array("d",config["binning"][obs]), len(config["binning"][config['observable2D'][obs]])-1, array.array("d",config["binning"][config['observable2D'][obs]]))
 			for secondBin in range (1,len(config["binning"][config['observable2D'][obs]])):
 				for firstBin in range (1,len(config["binning"][obs])):
-					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
+					effs = do2DFit (inputfile ,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h2.SetBinContent(firstBin, secondBin, effs[0] )
 					h2.SetBinError(firstBin, secondBin, effs[1] )
 			h2.Write()
@@ -281,12 +282,11 @@ def main(argv):
 			for firstBin in range (1,len(config["binning"][obs])):
 				h3 = ROOT.TH1F(samplename+'_'+config['observable2D'][obs]+'_'+obs+str(firstBin)+'_'+flag, obs+'%.1f'%config["binning"][obs][firstBin-1]+'-'+'%.1f'%config["binning"][obs][firstBin]+' '+config['observable2D'][obs]+' '+flag, len(config["binning"][config['observable2D'][obs]])-1, array.array("d",config["binning"][config['observable2D'][obs]]))
 				for secondBin in range (1,len(config["binning"][config['observable2D'][obs]])):
-					effs = do2DFit (f1,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
+					effs = do2DFit (inputfile,histoNames, obs, config['observable2D'][obs], firstBin, secondBin, flag, theWorkSpace, outputdir)
 					h3.SetBinContent(secondBin, effs[0] )
 					h3.SetBinError(secondBin, effs[1] )
 				h3.Write()
 	f3.Close()
-	f1.Close()
 
 if __name__ == '__main__':
 	main(sys.argv[1:])
